@@ -8,6 +8,20 @@ yt-dlp -x --audio-format mp3 "link"
 
 Uso pessoal, só roda na sua máquina.
 
+## Requisitos
+
+- `yt-dlp`, baixa os vídeos do youtube
+- `ffmpeg`, converter para MP3
+
+Roda esse comando que baixa os dois:
+```bash
+brew install yt-dlp ffmpeg
+```
+
+- Python 3 (não precisa instalar nenhuma biblioteca)
+
+Se o yt-dlp parar de funcionar, atualize com `brew upgrade yt-dlp`. O YouTube muda com frequência.
+
 ## Como rodar
 
 ```bash
@@ -23,14 +37,6 @@ Para parar o servidor, aperte `Ctrl+C` no terminal.
 
 Os MP3 são salvos em `~/Music/yt-mp3`.
 Para mudar a pasta, edite `OUT_DIR` no `server.py`.
-
-## Requisitos
-
-- `yt-dlp` (`brew install yt-dlp`)
-- `ffmpeg` (`brew install ffmpeg`), necessário para converter em MP3
-- Python 3 (não precisa instalar nenhuma biblioteca)
-
-Se o yt-dlp parar de funcionar, atualize com `brew upgrade yt-dlp`. O YouTube muda com frequência.
 
 ## Arquivos
 
