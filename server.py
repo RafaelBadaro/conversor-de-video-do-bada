@@ -9,7 +9,8 @@ import sys
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, quote, urlparse
+from urllib.request import urlopen
 
 HOST, PORT = "127.0.0.1", 8765
 ROOT = Path(__file__).parent
@@ -37,8 +38,26 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+        elif self.path.startswith("/info?"):
+            self.send_info()
         else:
             self.send_error(404)
+
+    def send_info(self):
+        """Título, canal e capa do vídeo, pelo oEmbed do YouTube."""
+        url = parse_qs(urlparse(self.path).query).get("url", [""])[0]
+        try:
+            with urlopen("https://www.youtube.com/oembed?format=json&url=" + quote(url, safe=""),
+                         timeout=5) as res:
+                data = json.load(res)
+            body = json.dumps({k: data.get(k) for k in ("title", "author_name", "thumbnail_url")}).encode()
+        except Exception:
+            return self.send_error(404)
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
     def do_POST(self):
         if self.path == "/cancel":
