@@ -22,6 +22,15 @@
   button { padding:12px 20px; font:inherit; font-weight:600; color:#fff; background:var(--accent);
            border:0; border-radius:10px; cursor:pointer; }
   button:disabled { opacity:.5; cursor:wait; }
+  #cancel { color:var(--fg); background:var(--card); border:1px solid var(--muted); }
+  #cancel[hidden] { display:none; }
+  #status.cancel { color:var(--muted); }
+  #choice { display:flex; flex-wrap:wrap; gap:8px 20px; margin-top:12px; padding:10px 14px;
+            background:var(--card); border-radius:10px; font-size:.95rem; }
+  #choice[hidden] { display:none; }
+  #choice span { width:100%; color:var(--muted); }
+  #choice label { cursor:pointer; }
+  #choice input { accent-color:var(--accent); }
   #status { margin:16px 0 8px; font-weight:600; min-height:1.5em; }
   #status.ok { color:var(--ok); } #status.err { color:var(--err); }
   pre { margin:0; padding:14px; background:var(--card); border-radius:10px; max-height:360px;
@@ -36,36 +45,63 @@
   <form id="form">
     <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=..." required autofocus>
     <button id="btn">Converter</button>
+    <button id="cancel" type="button" hidden>Cancelar</button>
   </form>
+  <div id="choice" hidden>
+    <span>Esse link é de um vídeo dentro de uma playlist. O que você quer baixar?</span>
+    <label><input type="radio" name="what" value="video" checked> Só o vídeo</label>
+    <label><input type="radio" name="what" value="playlist"> A playlist inteira</label>
+  </div>
   <div id="status"></div>
   <pre id="log"></pre>
 </main>
 <script>
   const form = document.getElementById('form'), url = document.getElementById('url'),
         btn = document.getElementById('btn'), status = document.getElementById('status'),
-        log = document.getElementById('log');
+        log = document.getElementById('log'), cancel = document.getElementById('cancel');
+  const choice = document.getElementById('choice');
+  let cancelled = false;
+
+  // Link de vídeo que também tem playlist (watch?v=...&list=...): deixa escolher.
+  function hasBoth(link) {
+    try {
+      const u = new URL(link), q = u.searchParams;
+      return q.has('list') && (q.has('v') || u.hostname === 'youtu.be');
+    } catch { return false; }
+  }
+  url.addEventListener('input', () => { choice.hidden = !hasBoth(url.value); });
+
+  cancel.addEventListener('click', async () => {
+    cancelled = true; cancel.disabled = true; status.textContent = 'Cancelando...';
+    await fetch('/cancel', { method: 'POST' }).catch(() => {});
+  });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    cancelled = false; cancel.disabled = false; cancel.hidden = false;
     btn.disabled = true; log.textContent = ''; status.className = ''; status.textContent = 'Convertendo...';
     let text = '';
     try {
-      const res = await fetch('/convert', { method: 'POST', body: JSON.stringify({ url: url.value }) });
+      const res = await fetch('/convert', { method: 'POST', body: JSON.stringify({
+        url: url.value,
+        playlist: !hasBoth(url.value) || document.querySelector('input[name=what]:checked').value === 'playlist',
+      }) });
       if (!res.ok) throw new Error(await res.text() || res.statusText);
       const reader = res.body.getReader(), dec = new TextDecoder();
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
         text += dec.decode(value, { stream: true });
-        log.textContent = text.replace(/\n__EXIT__\d+$/, '');
+        log.textContent = text.replace(/\n__EXIT__-?\d+$/, '');
         log.scrollTop = log.scrollHeight;
       }
-      const code = (text.match(/__EXIT__(\d+)$/) || [])[1];
-      if (code === '0') { status.className = 'ok'; status.textContent = 'Pronto! ✔'; url.value = ''; }
+      const code = (text.match(/__EXIT__(-?\d+)$/) || [])[1];
+      if (cancelled) { status.className = 'cancel'; status.textContent = 'Cancelado. O que já baixou continua na pasta.'; }
+      else if (code === '0') { status.className = 'ok'; status.textContent = 'Pronto! ✔'; url.value = ''; choice.hidden = true; }
       else { status.className = 'err'; status.textContent = 'Deu erro (veja o log abaixo).'; }
     } catch (err) {
       status.className = 'err'; status.textContent = 'Erro: ' + err.message;
-    } finally { btn.disabled = false; }
+    } finally { btn.disabled = false; cancel.hidden = true; }
   });
 </script>
 </body>

@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Servidor local: serve a página e roda yt-dlp -x --audio-format mp3 <link>."""
 import json
+import os
+import signal
 import subprocess
+import threading
 import sys
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -11,6 +14,18 @@ from urllib.parse import urlparse
 HOST, PORT = "127.0.0.1", 8765
 ROOT = Path(__file__).parent
 OUT_DIR = Path.home() / "Music" / "yt-mp3"
+
+# Processos do yt-dlp em andamento, para o botão Cancelar.
+running = set()
+running_lock = threading.Lock()
+
+
+def kill(proc):
+    """Mata o yt-dlp e os filhos dele (ffmpeg) de uma vez."""
+    try:
+        os.killpg(proc.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -26,10 +41,19 @@ class Handler(BaseHTTPRequestHandler):
             self.send_error(404)
 
     def do_POST(self):
+        if self.path == "/cancel":
+            with running_lock:
+                procs = list(running)
+            for proc in procs:
+                kill(proc)
+            self.send_response(204)
+            self.end_headers()
+            return
         if self.path != "/convert":
             return self.send_error(404)
         length = int(self.headers.get("Content-Length", 0))
-        url = json.loads(self.rfile.read(length) or b"{}").get("url", "").strip()
+        data = json.loads(self.rfile.read(length) or b"{}")
+        url = data.get("url", "").strip()
         parsed = urlparse(url)
         if parsed.scheme not in ("http", "https") or not parsed.netloc or url.startswith("-"):
             return self.send_error(400, "Link inválido")
@@ -40,18 +64,24 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-cache")
         self.end_headers()
 
-        cmd = ["yt-dlp", "-x", "--audio-format", "mp3", "--newline",
+        playlist = "--yes-playlist" if data.get("playlist", True) else "--no-playlist"
+        cmd = ["yt-dlp", "-x", "--audio-format", "mp3", "--newline", playlist,
                "-P", str(OUT_DIR), "--", url]
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                text=True, start_new_session=True)
+        with running_lock:
+            running.add(proc)
         try:
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                                    stderr=subprocess.STDOUT, text=True)
             for line in proc.stdout:
                 self.wfile.write(line.encode())
                 self.wfile.flush()
             code = proc.wait()
             self.wfile.write(f"\n__EXIT__{code}".encode())
         except (BrokenPipeError, ConnectionResetError):
-            proc.kill()
+            kill(proc)
+        finally:
+            with running_lock:
+                running.discard(proc)
 
     def log_message(self, *args):
         pass
