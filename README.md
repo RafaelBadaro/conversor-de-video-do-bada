@@ -24,6 +24,10 @@ Se o yt-dlp parar de funcionar, atualize com `brew upgrade yt-dlp`. O YouTube mu
 
 ## Como rodar
 
+Jeito fácil: dê dois cliques em **`Abrir Conversor.command`** no Finder. O Terminal abre, o servidor sobe e o navegador abre a página. Se o servidor já estiver rodando, ele só abre a página.
+
+Pelo terminal:
+
 ```bash
 cd ~/Documents/Coding/conversor-de-video-do-bada
 python3 server.py
