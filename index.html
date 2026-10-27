@@ -92,21 +92,21 @@
   </div>
   </section>
   <section id="pane-extract" class="filepane" hidden>
-  <p class="sub">Escolha um arquivo de vídeo (MP4, MOV...) e receba o MP3.<br>Salva em: <code>~/Downloads/downloads-conversor-do-bada/audios-extraidos-video</code></p>
+  <p class="sub">Escolha um arquivo de vídeo (MP4, MOV, MKV, AVI ou WEBM) e receba o MP3.<br>Salva em: <code>~/Downloads/downloads-conversor-do-bada/audios-extraidos-video</code></p>
   <form id="extractForm">
     <label class="drop">
       <span class="dropText">Arraste o vídeo para qualquer lugar da tela ou clique para escolher</span>
-      <input type="file" accept="video/*,audio/*,.mp4,.mov,.mkv,.avi,.webm" required>
+      <input type="file" accept=".mp4,.mov,.mkv,.avi,.webm" required>
     </label>
     <button id="extractBtn">Extrair áudio</button>
   </form>
   </section>
   <section id="pane-compress" class="filepane" hidden>
-  <p class="sub">Escolha um vídeo e receba uma versão menor (MP4).<br>Salva em: <code>~/Downloads/downloads-conversor-do-bada/videos-comprimidos</code></p>
+  <p class="sub">Escolha um vídeo (MP4, MOV, MKV, AVI ou WEBM) e receba uma versão menor (MP4).<br>Salva em: <code>~/Downloads/downloads-conversor-do-bada/videos-comprimidos</code></p>
   <form id="compressForm">
     <label class="drop">
       <span class="dropText">Arraste o vídeo para qualquer lugar da tela ou clique para escolher</span>
-      <input type="file" accept="video/*,.mp4,.mov,.mkv,.avi,.webm" required>
+      <input type="file" accept=".mp4,.mov,.mkv,.avi,.webm" required>
     </label>
     <select id="crf" aria-label="Compressão">
       <option value="23">Leve</option>

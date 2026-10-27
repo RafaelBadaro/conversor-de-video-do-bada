@@ -63,7 +63,7 @@ Para mudar a pasta, edite `OUT_DIR` no `server.py`.
 
 ### Extrair áudio de um vídeo
 
-Escolha um arquivo (MP4, MOV...) e clique em **Extrair áudio**. Ele roda:
+Escolha um arquivo (MP4, MOV, MKV, AVI ou WEBM) e clique em **Extrair áudio**. Ele roda:
 
 ```bash
 ffmpeg -i video.MP4 -vn -acodec libmp3lame -q:a 2 video.mp3
@@ -79,7 +79,7 @@ Para mudar a pasta, edite `EXTRACT_DIR` no `server.py`.
 
 ### Comprimir vídeo
 
-Escolha (ou arraste) um vídeo, defina a compressão (Leve, Média ou Forte) e clique em **Comprimir**. Ele roda:
+Escolha (ou arraste) um vídeo (MP4, MOV, MKV, AVI ou WEBM), defina a compressão (Leve, Média ou Forte) e clique em **Comprimir**. Ele roda:
 
 ```bash
 ffmpeg -i video.MP4 -c:v libx264 -crf 28 -preset medium -c:a aac -b:a 128k -movflags +faststart video.mp4
