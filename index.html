@@ -40,16 +40,18 @@
   .tabs { display:flex; gap:4px; margin:0 0 24px; padding:4px; background:var(--card); border-radius:12px; }
   .tabs button { flex:1; padding:8px 12px; color:var(--muted); background:transparent; }
   .tabs button[aria-selected=true] { color:var(--fg); background:var(--bg); box-shadow:0 1px 3px rgba(0,0,0,.2); }
-  #drop { flex:1; display:flex; align-items:center; justify-content:center; min-height:96px; padding:12px;
+  .drop { flex:1; display:flex; align-items:center; justify-content:center; min-height:96px; padding:12px;
           text-align:center; color:var(--muted); background:var(--card); border:2px dashed var(--muted);
           border-radius:10px; cursor:pointer; overflow-wrap:anywhere; }
   #overlay { position:fixed; inset:12px; z-index:10; display:flex; align-items:center; justify-content:center;
              font-size:1.4rem; font-weight:600; background:color-mix(in srgb, var(--bg) 88%, transparent);
              border:3px dashed var(--accent); border-radius:16px; pointer-events:none; }
   #overlay[hidden] { display:none; }
-  #drop.has { color:var(--fg); }
-  #drop input { display:none; }
-  #extractForm { align-items:stretch; }
+  .drop.has { color:var(--fg); }
+  .drop input { display:none; }
+  .filepane form { align-items:stretch; }
+  select { padding:0 12px; font:inherit; color:inherit; background:var(--card); border:0; border-radius:10px; }
+  #estimate { margin:10px 0 0; font-size:.9rem; }
   section[hidden] { display:none; }
   #actions { display:flex; align-items:center; gap:12px; margin:16px 0 8px; }
   #actions #status { margin:0; flex:1; }
@@ -70,6 +72,7 @@
   <div class="tabs" role="tablist">
     <button type="button" role="tab" id="tab-video" aria-selected="true">Vídeo do YouTube</button>
     <button type="button" role="tab" id="tab-extract" aria-selected="false">Extrair áudio</button>
+    <button type="button" role="tab" id="tab-compress" aria-selected="false">Comprimir vídeo</button>
   </div>
   <section id="pane-video">
   <p class="sub">Cole o link do YouTube e baixe em MP3. Salva em <code>~/Music/yt-mp3</code>.</p>
@@ -87,15 +90,31 @@
     <label><input type="radio" name="what" value="playlist"> A playlist inteira</label>
   </div>
   </section>
-  <section id="pane-extract" hidden>
+  <section id="pane-extract" class="filepane" hidden>
   <p class="sub">Escolha um arquivo de vídeo (MP4, MOV...) e receba o MP3 em <code>~/Downloads/audios-extraidos-video</code>.</p>
   <form id="extractForm">
-    <label id="drop">
-      <span id="dropText">Arraste o vídeo para qualquer lugar da tela ou clique para escolher</span>
-      <input id="file" type="file" accept="video/*,audio/*,.mp4,.mov,.mkv,.avi,.webm" required>
+    <label class="drop">
+      <span class="dropText">Arraste o vídeo para qualquer lugar da tela ou clique para escolher</span>
+      <input type="file" accept="video/*,audio/*,.mp4,.mov,.mkv,.avi,.webm" required>
     </label>
     <button id="extractBtn">Extrair áudio</button>
   </form>
+  </section>
+  <section id="pane-compress" class="filepane" hidden>
+  <p class="sub">Escolha um vídeo e receba uma versão menor (MP4) em <code>~/Downloads/videos-comprimidos</code>.</p>
+  <form id="compressForm">
+    <label class="drop">
+      <span class="dropText">Arraste o vídeo para qualquer lugar da tela ou clique para escolher</span>
+      <input type="file" accept="video/*,.mp4,.mov,.mkv,.avi,.webm" required>
+    </label>
+    <select id="crf" aria-label="Compressão">
+      <option value="23">Leve</option>
+      <option value="28" selected>Média</option>
+      <option value="32">Forte</option>
+    </select>
+    <button id="compressBtn">Comprimir</button>
+  </form>
+  <p id="estimate" class="sub" hidden></p>
   </section>
   <div id="actions">
     <div id="status"></div>
@@ -108,8 +127,10 @@
         btn = document.getElementById('btn'), status = document.getElementById('status'),
         log = document.getElementById('log'), cancel = document.getElementById('cancel');
   const choice = document.getElementById('choice'), extractForm = document.getElementById('extractForm'),
-        file = document.getElementById('file'), extractBtn = document.getElementById('extractBtn');
-  const tabs = { video: 'tab-video', extract: 'tab-extract' };
+        extractBtn = document.getElementById('extractBtn'), compressForm = document.getElementById('compressForm'),
+        compressBtn = document.getElementById('compressBtn');
+  const allButtons = [btn, extractBtn, compressBtn];
+  const tabs = { video: 'tab-video', extract: 'tab-extract', compress: 'tab-compress' };
   function showTab(name) {
     for (const [key, id] of Object.entries(tabs)) {
       document.getElementById(id).setAttribute('aria-selected', key === name);
@@ -118,30 +139,62 @@
     try { localStorage.setItem('tab', name); } catch {}
   }
   for (const [key, id] of Object.entries(tabs)) document.getElementById(id).addEventListener('click', () => showTab(key));
-  try { showTab(localStorage.getItem('tab') === 'extract' ? 'extract' : 'video'); } catch {}
+  try { showTab(localStorage.getItem('tab') in tabs ? localStorage.getItem('tab') : 'video'); } catch {}
 
-  // Arrastar e soltar (ou clicar) para escolher o vídeo.
-  const drop = document.getElementById('drop'), dropText = document.getElementById('dropText');
-  const DROP_HINT = dropText.textContent;
-  function showFile() {
-    const f = file.files[0];
-    dropText.textContent = f ? f.name : DROP_HINT;
-    drop.classList.toggle('has', !!f);
+  // Arrastar e soltar (ou clicar) para escolher o vídeo. A tela inteira aceita o arquivo
+  // quando a aba aberta é uma das que recebem arquivo.
+  const HINT = document.querySelector('.dropText').textContent;
+  function showFile(pane) {
+    const f = pane.querySelector('input[type=file]').files[0];
+    pane.querySelector('.dropText').textContent = f ? f.name : HINT;
+    pane.querySelector('.drop').classList.toggle('has', !!f);
   }
-  file.addEventListener('change', showFile);
-  // A tela inteira aceita o arquivo quando a aba "Extrair áudio" está aberta.
+  const filePanes = [...document.querySelectorAll('.filepane')];
+  for (const pane of filePanes) pane.querySelector('input[type=file]').addEventListener('change', () => showFile(pane));
+  // Estimativa do tamanho final em cada nível, a partir da duração e resolução do vídeo.
+  // Chute: bits por pixel de um H.264 típico em cada CRF, mais 128 kbps de áudio. Fica limitado
+  // ao tamanho original, e o resultado real varia com o conteúdo do vídeo.
+  const BPP = { 23: 0.08, 28: 0.045, 32: 0.027 }, NAMES = { 23: 'Leve', 28: 'Média', 32: 'Forte' };
+  const estimate = document.getElementById('estimate'), crf = document.getElementById('crf');
+  const mb = (bytes) => bytes >= 1e9 ? (bytes / 1e9).toFixed(1) + ' GB' : Math.max(1, Math.round(bytes / 1e6)) + ' MB';
+  let probe = null;
+  function updateEstimate() {
+    if (probe) { URL.revokeObjectURL(probe.src); probe = null; }
+    const f = document.querySelector('#pane-compress input[type=file]').files[0];
+    for (const o of crf.options) o.textContent = NAMES[o.value];
+    estimate.hidden = !f;
+    if (!f) return;
+    estimate.textContent = 'Original: ' + mb(f.size) + '.';
+    probe = document.createElement('video');
+    probe.preload = 'metadata';
+    probe.onloadedmetadata = () => {
+      const { duration, videoWidth: w, videoHeight: h } = probe;
+      if (!duration || !w || !h) return;
+      const parts = [];
+      for (const o of crf.options) {
+        const size = Math.min(f.size, duration * (w * h * 30 * BPP[o.value] + 128000) / 8);
+        o.textContent = NAMES[o.value] + ' (~' + mb(size) + ')';
+        parts.push(NAMES[o.value] + ' ~' + mb(size));
+      }
+      estimate.textContent = 'Original: ' + mb(f.size) + '. Estimativa: ' + parts.join(', ') + '. Varia conforme o vídeo.';
+    };
+    probe.src = URL.createObjectURL(f);
+  }
+  document.querySelector('#pane-compress input[type=file]').addEventListener('change', updateEstimate);
+
+  const openPane = () => filePanes.find((p) => !p.hidden);
   const overlay = document.getElementById('overlay');
-  const extractOpen = () => !document.getElementById('pane-extract').hidden;
   let depth = 0;
   window.addEventListener('dragenter', (e) => {
     e.preventDefault(); depth++;
-    if (extractOpen()) overlay.hidden = false;
+    if (openPane()) overlay.hidden = false;
   });
   window.addEventListener('dragover', (e) => e.preventDefault());
   window.addEventListener('dragleave', () => { if (--depth <= 0) { depth = 0; overlay.hidden = true; } });
   window.addEventListener('drop', (e) => {
     e.preventDefault(); depth = 0; overlay.hidden = true;
-    if (extractOpen() && e.dataTransfer.files.length) { file.files = e.dataTransfer.files; showFile(); }
+    const pane = openPane();
+    if (pane && e.dataTransfer.files.length) { pane.querySelector('input[type=file]').files = e.dataTransfer.files; showFile(pane); updateEstimate(); }
   });
 
   let cancelled = false, aborter = null;
@@ -186,7 +239,7 @@
   // Manda a requisição, mostra o log em tempo real e trata o fim (código de saída).
   async function run(button, startText, request, onOk) {
     cancelled = false; cancel.disabled = false; cancel.hidden = false; aborter = new AbortController();
-    btn.disabled = true; extractBtn.disabled = true; log.textContent = ''; status.className = ''; status.textContent = startText;
+    allButtons.forEach((b) => b.disabled = true); log.textContent = ''; status.className = ''; status.textContent = startText;
     let text = '';
     try {
       const res = await request();
@@ -207,7 +260,7 @@
     } catch (err) {
       if (cancelled) { status.className = 'cancel'; status.textContent = 'Cancelado.'; }
       else { status.className = 'err'; status.textContent = 'Erro: ' + err.message; }
-    } finally { btn.disabled = false; extractBtn.disabled = false; cancel.hidden = true; }
+    } finally { allButtons.forEach((b) => b.disabled = false); cancel.hidden = true; }
   }
 
   form.addEventListener('submit', (e) => {
@@ -218,13 +271,19 @@
     }) }), () => { url.value = ''; choice.hidden = true; loadPreview(); });
   });
 
-  extractForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const f = file.files[0];
-    run(extractBtn, 'Enviando o vídeo...', () => fetch('/extract', {
-      method: 'POST', signal: aborter.signal, headers: { 'X-Filename': encodeURIComponent(f.name) }, body: f,
-    }), () => { file.value = ''; showFile(); });
-  });
+  // Envia o arquivo escolhido na aba para `endpoint` e mostra o andamento.
+  function sendFile(form, endpoint, button, extraHeaders = () => ({})) {
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const pane = form.closest('.filepane'), input = pane.querySelector('input[type=file]'), f = input.files[0];
+      run(button, 'Enviando o vídeo...', () => fetch(endpoint, {
+        method: 'POST', signal: aborter.signal, body: f,
+        headers: { 'X-Filename': encodeURIComponent(f.name), ...extraHeaders() },
+      }), () => { input.value = ''; showFile(pane); updateEstimate(); });
+    });
+  }
+  sendFile(extractForm, '/extract', extractBtn);
+  sendFile(compressForm, '/compress', compressBtn, () => ({ 'X-Crf': document.getElementById('crf').value }));
 </script>
 </body>
 </html>

@@ -47,6 +47,16 @@ ffmpeg -i video.MP4 -vn -acodec libmp3lame -q:a 2 video.mp3
 
 O MP3 fica em `~/Downloads/audios-extraidos-video`, com o nome do vídeo. Para mudar a pasta, edite `EXTRACT_DIR` no `server.py`.
 
+## Comprimir vídeo
+
+Na aba **Comprimir vídeo**, escolha (ou arraste) um vídeo, defina a compressão (Leve, Média ou Forte) e clique em **Comprimir**. Ele roda:
+
+```bash
+ffmpeg -i video.MP4 -c:v libx264 -crf 28 -preset medium -c:a aac -b:a 128k -movflags +faststart video.mp4
+```
+
+Leve, Média e Forte usam CRF 23, 28 e 32 (quanto maior, menor o arquivo e a qualidade). O resultado fica em `~/Downloads/videos-comprimidos`. Para mudar a pasta, edite `COMPRESS_DIR` no `server.py`.
+
 ## Onde ficam os arquivos
 
 Os MP3 são salvos em `~/Music/yt-mp3`.

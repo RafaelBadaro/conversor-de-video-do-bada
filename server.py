@@ -18,6 +18,8 @@ HOST, PORT = "127.0.0.1", 8765
 ROOT = Path(__file__).parent
 OUT_DIR = Path.home() / "Music" / "yt-mp3"
 EXTRACT_DIR = Path.home() / "Downloads" / "audios-extraidos-video"
+COMPRESS_DIR = Path.home() / "Downloads" / "videos-comprimidos"
+CRF_OPTIONS = {"23", "28", "32"}  # leve, média, forte
 
 # Processos do yt-dlp em andamento, para o botão Cancelar.
 running = set()
@@ -72,7 +74,14 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             return
         if self.path == "/extract":
-            return self.extract()
+            return self.run_ffmpeg(EXTRACT_DIR, ".mp3", ["-vn", "-acodec", "libmp3lame", "-q:a", "2"])
+        if self.path == "/compress":
+            crf = self.headers.get("X-Crf", "28")
+            if crf not in CRF_OPTIONS:
+                return self.send_error(400, "Qualidade inválida")
+            return self.run_ffmpeg(COMPRESS_DIR, ".mp4", [
+                "-c:v", "libx264", "-crf", crf, "-preset", "medium",
+                "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart"])
         if self.path != "/convert":
             return self.send_error(404)
         length = int(self.headers.get("Content-Length", 0))
@@ -107,16 +116,16 @@ class Handler(BaseHTTPRequestHandler):
             with running_lock:
                 running.discard(proc)
 
-    def extract(self):
-        """Recebe um vídeo (corpo cru) e extrai o áudio com ffmpeg, como MP3."""
-        stem = Path(unquote(self.headers.get("X-Filename", ""))).stem.strip().lstrip(".") or "audio"
+    def run_ffmpeg(self, out_dir, ext, args):
+        """Recebe um vídeo (corpo cru), roda o ffmpeg com `args` e salva em out_dir."""
+        stem = Path(unquote(self.headers.get("X-Filename", ""))).stem.strip().lstrip(".") or "arquivo"
         length = int(self.headers.get("Content-Length", 0))
-        EXTRACT_DIR.mkdir(parents=True, exist_ok=True)
-        out = EXTRACT_DIR / f"{stem}.mp3"
+        out_dir.mkdir(parents=True, exist_ok=True)
+        out = out_dir / f"{stem}{ext}"
         n = 1
         while out.exists():
             n += 1
-            out = EXTRACT_DIR / f"{stem} ({n}).mp3"
+            out = out_dir / f"{stem} ({n}){ext}"
 
         with tempfile.TemporaryDirectory() as tmp:
             src = Path(tmp) / "entrada"
@@ -134,8 +143,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Cache-Control", "no-cache")
             self.end_headers()
 
-            cmd = ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-i", str(src),
-                   "-vn", "-acodec", "libmp3lame", "-q:a", "2", str(out)]
+            cmd = ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-stats", "-i", str(src),
+                   *args, str(out)]
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                     text=True, start_new_session=True)
             with running_lock:
