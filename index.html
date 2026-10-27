@@ -43,7 +43,10 @@
   #drop { flex:1; display:flex; align-items:center; justify-content:center; min-height:96px; padding:12px;
           text-align:center; color:var(--muted); background:var(--card); border:2px dashed var(--muted);
           border-radius:10px; cursor:pointer; overflow-wrap:anywhere; }
-  #drop.over { color:var(--fg); border-color:var(--accent); }
+  #overlay { position:fixed; inset:12px; z-index:10; display:flex; align-items:center; justify-content:center;
+             font-size:1.4rem; font-weight:600; background:color-mix(in srgb, var(--bg) 88%, transparent);
+             border:3px dashed var(--accent); border-radius:16px; pointer-events:none; }
+  #overlay[hidden] { display:none; }
   #drop.has { color:var(--fg); }
   #drop input { display:none; }
   #extractForm { align-items:stretch; }
@@ -61,6 +64,7 @@
 </style>
 </head>
 <body>
+<div id="overlay" hidden>Solte o vídeo aqui</div>
 <main>
   <h1>Conversor do Bada</h1>
   <div class="tabs" role="tablist">
@@ -87,7 +91,7 @@
   <p class="sub">Escolha um arquivo de vídeo (MP4, MOV...) e receba o MP3 em <code>~/Downloads/audios-extraidos-video</code>.</p>
   <form id="extractForm">
     <label id="drop">
-      <span id="dropText">Arraste o vídeo aqui ou clique para escolher</span>
+      <span id="dropText">Arraste o vídeo para qualquer lugar da tela ou clique para escolher</span>
       <input id="file" type="file" accept="video/*,audio/*,.mp4,.mov,.mkv,.avi,.webm" required>
     </label>
     <button id="extractBtn">Extrair áudio</button>
@@ -125,14 +129,20 @@
     drop.classList.toggle('has', !!f);
   }
   file.addEventListener('change', showFile);
-  for (const ev of ['dragenter', 'dragover']) drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); });
-  for (const ev of ['dragleave', 'drop']) drop.addEventListener(ev, () => drop.classList.remove('over'));
-  drop.addEventListener('drop', (e) => {
-    e.preventDefault();
-    if (e.dataTransfer.files.length) { file.files = e.dataTransfer.files; showFile(); }
+  // A tela inteira aceita o arquivo quando a aba "Extrair áudio" está aberta.
+  const overlay = document.getElementById('overlay');
+  const extractOpen = () => !document.getElementById('pane-extract').hidden;
+  let depth = 0;
+  window.addEventListener('dragenter', (e) => {
+    e.preventDefault(); depth++;
+    if (extractOpen()) overlay.hidden = false;
   });
-  // Soltar fora da área não deve abrir o vídeo no navegador.
-  for (const ev of ['dragover', 'drop']) window.addEventListener(ev, (e) => e.preventDefault());
+  window.addEventListener('dragover', (e) => e.preventDefault());
+  window.addEventListener('dragleave', () => { if (--depth <= 0) { depth = 0; overlay.hidden = true; } });
+  window.addEventListener('drop', (e) => {
+    e.preventDefault(); depth = 0; overlay.hidden = true;
+    if (extractOpen() && e.dataTransfer.files.length) { file.files = e.dataTransfer.files; showFile(); }
+  });
 
   let cancelled = false, aborter = null;
 
