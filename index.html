@@ -5,63 +5,63 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Conversor do Bada</title>
 <style>
-  :root { --bg:#fff; --fg:#1a1a1a; --muted:#6b6b6b; --card:#f4f4f5; --accent:#e11d48; --ok:#16a34a; --err:#dc2626; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#111; --fg:#eee; --muted:#999; --card:#1c1c1e; }
-  }
+  :root { --bg:#020a02; --fg:#33ff66; --muted:#1fa443; --card:#041504; --accent:#33ff66; --ok:#33ff66; --err:#ff5555; }
   * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui, sans-serif;
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 ui-monospace, Menlo, monospace;
          display:flex; justify-content:center; padding:48px 16px; }
   main { width:100%; max-width:640px; }
-  h1 { margin:0 0 4px; font-size:1.6rem; }
+  h1 { margin:0 0 4px; font-size:1.6rem; text-transform:uppercase; }
+  h1::before { content:"> "; }
+  h1::after { content:"_"; animation:blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity:0; } }
   p.sub { margin:0 0 24px; color:var(--muted); }
   form { display:flex; gap:8px; }
   input { flex:1; padding:12px 14px; font:inherit; color:inherit; background:var(--card);
-          border:1px solid transparent; border-radius:10px; outline:none; }
+          border:1px solid var(--muted); border-radius:0; outline:none; }
   input:focus { border-color:var(--accent); }
-  button { padding:12px 20px; font:inherit; font-weight:600; color:#fff; background:var(--accent);
-           border:0; border-radius:10px; cursor:pointer; }
+  button { padding:12px 20px; font:inherit; font-weight:600; color:#021a06; text-transform:uppercase; background:var(--accent);
+           border:0; border-radius:0; cursor:pointer; }
   button:disabled { opacity:.5; cursor:wait; }
   #cancel { color:var(--fg); background:var(--card); border:1px solid var(--muted); }
   #cancel[hidden] { display:none; }
   #openFolder { color:var(--fg); background:var(--card); border:1px solid var(--muted); }
   #status.cancel { color:var(--muted); }
   #choice { display:flex; flex-wrap:wrap; gap:8px 20px; margin-top:12px; padding:10px 14px;
-            background:var(--card); border-radius:10px; font-size:.95rem; }
+            background:var(--card); border-radius:0; font-size:.95rem; }
   #choice[hidden] { display:none; }
   #choice span { width:100%; color:var(--muted); }
   #choice label { cursor:pointer; }
   #choice input { accent-color:var(--accent); }
   #preview { display:flex; gap:12px; align-items:center; margin-top:12px; padding:10px;
-             background:var(--card); border-radius:10px; }
+             background:var(--card); border-radius:0; }
   #preview[hidden] { display:none; }
-  #preview img { width:120px; aspect-ratio:16/9; object-fit:cover; border-radius:6px; flex-shrink:0; }
+  #preview img { width:120px; aspect-ratio:16/9; object-fit:cover; border-radius:0; flex-shrink:0; }
   #preview b { display:block; line-height:1.3; }
   #preview small { color:var(--muted); }
-  .tabs { display:flex; gap:4px; margin:0 0 24px; padding:4px; background:var(--card); border-radius:12px; }
+  .tabs { display:flex; gap:4px; margin:0 0 24px; padding:4px; background:var(--card); border-radius:0; }
   .tabs button { flex:1; padding:8px 12px; color:var(--muted); background:transparent; }
-  .tabs button[aria-selected=true] { color:var(--fg); background:var(--bg); box-shadow:0 1px 3px rgba(0,0,0,.2); }
+  .tabs button[aria-selected=true] { color:#021a06; background:var(--accent); box-shadow:none; }
   .drop { flex:1; display:flex; align-items:center; justify-content:center; min-height:96px; padding:12px;
           text-align:center; color:var(--muted); background:var(--card); border:2px dashed var(--muted);
-          border-radius:10px; cursor:pointer; overflow-wrap:anywhere; }
+          border-radius:0; cursor:pointer; overflow-wrap:anywhere; }
   #overlay { position:fixed; inset:12px; z-index:10; display:flex; align-items:center; justify-content:center;
              font-size:1.4rem; font-weight:600; background:color-mix(in srgb, var(--bg) 88%, transparent);
-             border:3px dashed var(--accent); border-radius:16px; pointer-events:none; }
+             border:3px dashed var(--accent); border-radius:0; pointer-events:none; }
   #overlay[hidden] { display:none; }
   .drop.has { color:var(--fg); }
   .drop input { display:none; }
   .filepane form { align-items:stretch; }
-  select { padding:0 12px; font:inherit; color:inherit; background:var(--card); border:0; border-radius:10px; }
+  select { padding:0 12px; font:inherit; color:inherit; background:var(--card); border:0; border-radius:0; }
   #estimate { margin:10px 0 0; font-size:.9rem; }
   section[hidden] { display:none; }
   #actions { display:flex; align-items:center; gap:12px; margin:16px 0 8px; }
   #actions #status { margin:0; flex:1; }
-  #file { flex:1; min-width:0; padding:9px 14px; font:inherit; color:inherit; background:var(--card); border-radius:10px; }
+  #file { flex:1; min-width:0; padding:9px 14px; font:inherit; color:inherit; background:var(--card); border-radius:0; }
   #file::file-selector-button { margin-right:12px; padding:6px 12px; font:inherit; color:var(--fg);
-                                background:var(--bg); border:1px solid var(--muted); border-radius:8px; cursor:pointer; }
+                                background:var(--bg); border:1px solid var(--muted); border-radius:0; cursor:pointer; }
   #status { margin:16px 0 8px; font-weight:600; min-height:1.5em; }
   #status.ok { color:var(--ok); } #status.err { color:var(--err); }
-  pre { margin:0; padding:14px; background:var(--card); border-radius:10px; max-height:360px;
+  pre { margin:0; padding:14px; background:var(--card); border-radius:0; max-height:360px;
         overflow:auto; font:12.5px/1.5 ui-monospace, Menlo, monospace; white-space:pre-wrap; word-break:break-all; }
   pre:empty { display:none; }
 </style>
