@@ -17,9 +17,10 @@ from urllib.request import urlopen
 
 HOST, PORT = "127.0.0.1", 8765
 ROOT = Path(__file__).parent
-OUT_DIR = Path.home() / "Downloads"
-EXTRACT_DIR = Path.home() / "Downloads" / "audios-extraidos-video"
-COMPRESS_DIR = Path.home() / "Downloads" / "videos-comprimidos"
+BASE_DIR = Path.home() / "Downloads" / "downloads-conversor-do-bada"
+OUT_DIR = BASE_DIR / "youtube-para-mp3"
+EXTRACT_DIR = BASE_DIR / "audios-extraidos-video"
+COMPRESS_DIR = BASE_DIR / "videos-comprimidos"
 FOLDERS = {"video": OUT_DIR, "extract": EXTRACT_DIR, "compress": COMPRESS_DIR}
 CRF_OPTIONS = {"23", "28", "32"}  # leve, média, forte
 

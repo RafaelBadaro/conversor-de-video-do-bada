@@ -9,9 +9,20 @@ Ele tem 3 funcionalidades:
 
 ## Como rodar
 
-Dê dois cliques em **`Abrir Conversor.command`** no Finder (Mac) ou **`Abrir Conversor.bat`** (Windows). O Terminal abre, o servidor sobe e o navegador abre a página. Se o servidor já estiver rodando, ele só abre a página.
+### Mac
+- Abrir arquivo: **`Abrir Conversor.command`**
 
-Não precisa instalar nada antes: na primeira vez, ele instala sozinho o que faltar (Python, `yt-dlp` e `ffmpeg`). Pode demorar um pouco e, no Mac, pedir a senha.
+### Windows
+- Abrir arquivo: **`Abrir Conversor.bat`**
+
+Um Terminal abre, o servidor sobe e o navegador abre a página. 
+
+Se o servidor já estiver rodando, ele só abre a página.
+
+
+![Tela do Conversor do Bada](imagens/tela.png)
+
+Pronto! Agora é só aproveitar 🎉🎉🎉
 
 ## Detalhes técnicos para nerds
 
@@ -24,7 +35,9 @@ python3 server.py
 
 O navegador padrão abre sozinho em http://127.0.0.1:8765. Para parar o servidor, aperte `Ctrl+C` no terminal.
 
-### Requisitos
+### Dependências
+
+O **Abrir Conversor** instala tudo isso sozinho na primeira vez.
 
 - Python 3 (não precisa instalar nenhuma biblioteca)
 - `yt-dlp`, baixa os vídeos do YouTube
@@ -40,7 +53,13 @@ Cole o link e clique em **Converter**. Ele roda:
 yt-dlp -x --audio-format mp3 "link"
 ```
 
-Os MP3 são salvos em `~/Downloads`. Para mudar a pasta, edite `OUT_DIR` no `server.py`.
+O MP3 fica em:
+```bash
+Downloads/downloads-conversor-do-bada/youtube-para-mp3
+```
+com o nome do vídeo. 
+
+Para mudar a pasta, edite `OUT_DIR` no `server.py`.
 
 ### Extrair áudio de um vídeo
 
@@ -50,7 +69,13 @@ Escolha um arquivo (MP4, MOV...) e clique em **Extrair áudio**. Ele roda:
 ffmpeg -i video.MP4 -vn -acodec libmp3lame -q:a 2 video.mp3
 ```
 
-O MP3 fica em `~/Downloads/audios-extraidos-video`, com o nome do vídeo. Para mudar a pasta, edite `EXTRACT_DIR` no `server.py`.
+O MP3 fica em:
+```bash
+Downloads/downloads-conversor-do-bada/audios-extraidos-video
+```
+com o nome do vídeo.
+
+Para mudar a pasta, edite `EXTRACT_DIR` no `server.py`.
 
 ### Comprimir vídeo
 
@@ -60,7 +85,15 @@ Escolha (ou arraste) um vídeo, defina a compressão (Leve, Média ou Forte) e c
 ffmpeg -i video.MP4 -c:v libx264 -crf 28 -preset medium -c:a aac -b:a 128k -movflags +faststart video.mp4
 ```
 
-Leve, Média e Forte usam CRF 23, 28 e 32 (quanto maior, menor o arquivo e a qualidade). O resultado fica em `~/Downloads/videos-comprimidos`. Para mudar a pasta, edite `COMPRESS_DIR` no `server.py`.
+Leve, Média e Forte usam CRF 23, 28 e 32 (quanto maior, menor o arquivo e a qualidade). 
+
+O vídeo comprimido fica em:
+```bash
+Downloads/downloads-conversor-do-bada/videos-comprimidos
+```
+com o nome do vídeo.
+
+Para mudar a pasta, edite `COMPRESS_DIR` no `server.py`.
 
 ### Arquivos
 
