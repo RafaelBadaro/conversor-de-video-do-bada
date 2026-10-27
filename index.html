@@ -24,6 +24,7 @@
   button:disabled { opacity:.5; cursor:wait; }
   #cancel { color:var(--fg); background:var(--card); border:1px solid var(--muted); }
   #cancel[hidden] { display:none; }
+  #openFolder { color:var(--fg); background:var(--card); border:1px solid var(--muted); }
   #status.cancel { color:var(--muted); }
   #choice { display:flex; flex-wrap:wrap; gap:8px 20px; margin-top:12px; padding:10px 14px;
             background:var(--card); border-radius:10px; font-size:.95rem; }
@@ -75,7 +76,7 @@
     <button type="button" role="tab" id="tab-compress" aria-selected="false">Comprimir vídeo</button>
   </div>
   <section id="pane-video">
-  <p class="sub">Cole o link do YouTube e baixe em MP3. Salva em <code>~/Music/yt-mp3</code>.</p>
+  <p class="sub">Cole o link do YouTube e baixe em MP3.<br>Salva em: <code>~/Downloads</code></p>
   <form id="form">
     <input id="url" type="url" placeholder="https://www.youtube.com/watch?v=..." required autofocus>
     <button id="btn">Converter</button>
@@ -91,7 +92,7 @@
   </div>
   </section>
   <section id="pane-extract" class="filepane" hidden>
-  <p class="sub">Escolha um arquivo de vídeo (MP4, MOV...) e receba o MP3 em <code>~/Downloads/audios-extraidos-video</code>.</p>
+  <p class="sub">Escolha um arquivo de vídeo (MP4, MOV...) e receba o MP3.<br>Salva em: <code>~/Downloads/audios-extraidos-video</code></p>
   <form id="extractForm">
     <label class="drop">
       <span class="dropText">Arraste o vídeo para qualquer lugar da tela ou clique para escolher</span>
@@ -101,7 +102,7 @@
   </form>
   </section>
   <section id="pane-compress" class="filepane" hidden>
-  <p class="sub">Escolha um vídeo e receba uma versão menor (MP4) em <code>~/Downloads/videos-comprimidos</code>.</p>
+  <p class="sub">Escolha um vídeo e receba uma versão menor (MP4).<br>Salva em: <code>~/Downloads/videos-comprimidos</code></p>
   <form id="compressForm">
     <label class="drop">
       <span class="dropText">Arraste o vídeo para qualquer lugar da tela ou clique para escolher</span>
@@ -118,6 +119,7 @@
   </section>
   <div id="actions">
     <div id="status"></div>
+    <button id="openFolder" type="button">Abrir pasta</button>
     <button id="cancel" type="button" hidden>Cancelar</button>
   </div>
   <pre id="log"></pre>
@@ -129,6 +131,9 @@
   const choice = document.getElementById('choice'), extractForm = document.getElementById('extractForm'),
         extractBtn = document.getElementById('extractBtn'), compressForm = document.getElementById('compressForm'),
         compressBtn = document.getElementById('compressBtn');
+  const openFolder = document.getElementById('openFolder');
+  let currentTab = 'video';
+  openFolder.addEventListener('click', () => fetch('/open/' + currentTab, { method: 'POST' }).catch(() => {}));
   const allButtons = [btn, extractBtn, compressBtn];
   const tabs = { video: 'tab-video', extract: 'tab-extract', compress: 'tab-compress' };
   function showTab(name) {
@@ -136,6 +141,7 @@
       document.getElementById(id).setAttribute('aria-selected', key === name);
       document.getElementById('pane-' + key).hidden = key !== name;
     }
+    currentTab = name;
     try { localStorage.setItem('tab', name); } catch {}
   }
   for (const [key, id] of Object.entries(tabs)) document.getElementById(id).addEventListener('click', () => showTab(key));

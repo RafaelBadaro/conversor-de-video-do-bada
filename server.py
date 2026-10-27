@@ -8,6 +8,7 @@ import subprocess
 import threading
 import sys
 import tempfile
+import time
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -16,9 +17,10 @@ from urllib.request import urlopen
 
 HOST, PORT = "127.0.0.1", 8765
 ROOT = Path(__file__).parent
-OUT_DIR = Path.home() / "Music" / "yt-mp3"
+OUT_DIR = Path.home() / "Downloads"
 EXTRACT_DIR = Path.home() / "Downloads" / "audios-extraidos-video"
 COMPRESS_DIR = Path.home() / "Downloads" / "videos-comprimidos"
+FOLDERS = {"video": OUT_DIR, "extract": EXTRACT_DIR, "compress": COMPRESS_DIR}
 CRF_OPTIONS = {"23", "28", "32"}  # leve, média, forte
 
 # Processos do yt-dlp em andamento, para o botão Cancelar.
@@ -70,6 +72,15 @@ class Handler(BaseHTTPRequestHandler):
                 procs = list(running)
             for proc in procs:
                 kill(proc)
+            self.send_response(204)
+            self.end_headers()
+            return
+        if self.path.startswith("/open/"):
+            folder = FOLDERS.get(self.path[len("/open/"):])
+            if not folder:
+                return self.send_error(404)
+            folder.mkdir(parents=True, exist_ok=True)
+            subprocess.Popen(["open", str(folder)])
             self.send_response(204)
             self.end_headers()
             return
@@ -169,11 +180,24 @@ class Handler(BaseHTTPRequestHandler):
         pass
 
 
+def restart_on_change():
+    """Reinicia o servidor sozinho quando este arquivo muda."""
+    path = Path(__file__)
+    last = path.stat().st_mtime
+    while True:
+        time.sleep(1)
+        if path.stat().st_mtime != last:
+            os.environ["RELOADED"] = "1"
+            os.execv(sys.executable, [sys.executable, *sys.argv])
+
+
 if __name__ == "__main__":
     print(f"Rodando em http://{HOST}:{PORT}  (arquivos em {OUT_DIR})")
     try:
         server = ThreadingHTTPServer((HOST, PORT), Handler)
-        webbrowser.open(f"http://{HOST}:{PORT}")
+        if not os.environ.get("RELOADED"):
+            webbrowser.open(f"http://{HOST}:{PORT}")
+        threading.Thread(target=restart_on_change, daemon=True).start()
         server.serve_forever()
     except KeyboardInterrupt:
         sys.exit(0)

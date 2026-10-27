@@ -59,7 +59,7 @@ Leve, Média e Forte usam CRF 23, 28 e 32 (quanto maior, menor o arquivo e a qua
 
 ## Onde ficam os arquivos
 
-Os MP3 são salvos em `~/Music/yt-mp3`.
+Os MP3 são salvos em `~/Downloads`.
 Para mudar a pasta, edite `OUT_DIR` no `server.py`.
 
 ## Arquivos
