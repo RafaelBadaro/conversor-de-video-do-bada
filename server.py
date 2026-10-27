@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
-"""Servidor local: serve a página e roda yt-dlp -x --audio-format mp3 <link>."""
+"""Servidor local: serve a página e roda yt-dlp -x --audio-format mp3 <link>
+ou extrai o áudio de um vídeo enviado com ffmpeg."""
 import json
 import os
 import signal
 import subprocess
 import threading
 import sys
+import tempfile
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import parse_qs, quote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlparse
 from urllib.request import urlopen
 
 HOST, PORT = "127.0.0.1", 8765
 ROOT = Path(__file__).parent
 OUT_DIR = Path.home() / "Music" / "yt-mp3"
+EXTRACT_DIR = Path.home() / "Downloads" / "audios-extraidos-video"
 
 # Processos do yt-dlp em andamento, para o botão Cancelar.
 running = set()
@@ -68,6 +71,8 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(204)
             self.end_headers()
             return
+        if self.path == "/extract":
+            return self.extract()
         if self.path != "/convert":
             return self.send_error(404)
         length = int(self.headers.get("Content-Length", 0))
@@ -101,6 +106,55 @@ class Handler(BaseHTTPRequestHandler):
         finally:
             with running_lock:
                 running.discard(proc)
+
+    def extract(self):
+        """Recebe um vídeo (corpo cru) e extrai o áudio com ffmpeg, como MP3."""
+        stem = Path(unquote(self.headers.get("X-Filename", ""))).stem.strip().lstrip(".") or "audio"
+        length = int(self.headers.get("Content-Length", 0))
+        EXTRACT_DIR.mkdir(parents=True, exist_ok=True)
+        out = EXTRACT_DIR / f"{stem}.mp3"
+        n = 1
+        while out.exists():
+            n += 1
+            out = EXTRACT_DIR / f"{stem} ({n}).mp3"
+
+        with tempfile.TemporaryDirectory() as tmp:
+            src = Path(tmp) / "entrada"
+            with open(src, "wb") as f:
+                left = length
+                while left > 0:
+                    chunk = self.rfile.read(min(1 << 20, left))
+                    if not chunk:
+                        return
+                    f.write(chunk)
+                    left -= len(chunk)
+
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+
+            cmd = ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-i", str(src),
+                   "-vn", "-acodec", "libmp3lame", "-q:a", "2", str(out)]
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                    text=True, start_new_session=True)
+            with running_lock:
+                running.add(proc)
+            try:
+                for line in proc.stdout:
+                    self.wfile.write(line.encode())
+                code = proc.wait()
+                if code == 0:
+                    self.wfile.write(f"Salvo em {out}\n".encode())
+                else:
+                    out.unlink(missing_ok=True)
+                self.wfile.write(f"\n__EXIT__{code}".encode())
+            except (BrokenPipeError, ConnectionResetError):
+                kill(proc)
+                out.unlink(missing_ok=True)
+            finally:
+                with running_lock:
+                    running.discard(proc)
 
     def log_message(self, *args):
         pass

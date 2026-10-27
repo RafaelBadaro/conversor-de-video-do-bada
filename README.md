@@ -37,6 +37,16 @@ O navegador padrão abre sozinho em http://127.0.0.1:8765. Cole o link e clique 
 
 Para parar o servidor, aperte `Ctrl+C` no terminal.
 
+## Extrair áudio de um vídeo
+
+Na seção **Extrair áudio de um vídeo**, escolha um arquivo (MP4, MOV...) e clique em **Extrair áudio**. Ele roda:
+
+```bash
+ffmpeg -i video.MP4 -vn -acodec libmp3lame -q:a 2 video.mp3
+```
+
+O MP3 fica em `~/Downloads/audios-extraidos-video`, com o nome do vídeo. Para mudar a pasta, edite `EXTRACT_DIR` no `server.py`.
+
 ## Onde ficam os arquivos
 
 Os MP3 são salvos em `~/Music/yt-mp3`.
@@ -44,7 +54,7 @@ Para mudar a pasta, edite `OUT_DIR` no `server.py`.
 
 ## Arquivos
 
-- `server.py`: servidor local que serve a página e executa o yt-dlp
+- `server.py`: servidor local que serve a página e executa o yt-dlp e o ffmpeg
 - `index.html`: a página, com campo de link e log em tempo real
 
 ## Segurança
