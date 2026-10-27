@@ -28,12 +28,27 @@ running = set()
 running_lock = threading.Lock()
 
 
+WINDOWS = sys.platform == "win32"
+# Põe o processo num grupo próprio, para matar ele e os filhos juntos.
+GROUP = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP} if WINDOWS else {"start_new_session": True}
+
+
 def kill(proc):
     """Mata o yt-dlp e os filhos dele (ffmpeg) de uma vez."""
+    if WINDOWS:
+        subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
+        return
     try:
         os.killpg(proc.pid, signal.SIGTERM)
     except ProcessLookupError:
         pass
+
+
+def open_folder(folder):
+    if WINDOWS:
+        os.startfile(folder)
+    else:
+        subprocess.Popen(["open" if sys.platform == "darwin" else "xdg-open", str(folder)])
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -80,7 +95,7 @@ class Handler(BaseHTTPRequestHandler):
             if not folder:
                 return self.send_error(404)
             folder.mkdir(parents=True, exist_ok=True)
-            subprocess.Popen(["open", str(folder)])
+            open_folder(folder)
             self.send_response(204)
             self.end_headers()
             return
@@ -112,7 +127,7 @@ class Handler(BaseHTTPRequestHandler):
         cmd = ["yt-dlp", "-x", "--audio-format", "mp3", "--newline", playlist,
                "-P", str(OUT_DIR), "--", url]
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                text=True, start_new_session=True)
+                                text=True, encoding="utf-8", errors="replace", **GROUP)
         with running_lock:
             running.add(proc)
         try:
@@ -157,7 +172,7 @@ class Handler(BaseHTTPRequestHandler):
             cmd = ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-stats", "-i", str(src),
                    *args, str(out)]
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                    text=True, start_new_session=True)
+                                    text=True, encoding="utf-8", errors="replace", **GROUP)
             with running_lock:
                 running.add(proc)
             try:
@@ -197,7 +212,8 @@ if __name__ == "__main__":
         server = ThreadingHTTPServer((HOST, PORT), Handler)
         if not os.environ.get("RELOADED"):
             webbrowser.open(f"http://{HOST}:{PORT}")
-        threading.Thread(target=restart_on_change, daemon=True).start()
+        if not WINDOWS:  # os.execv não reinicia direito no Windows
+            threading.Thread(target=restart_on_change, daemon=True).start()
         server.serve_forever()
     except KeyboardInterrupt:
         sys.exit(0)
