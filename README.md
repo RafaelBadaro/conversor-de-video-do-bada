@@ -1,5 +1,22 @@
 # Conversor do Bada
 
+Fiquei cansado de ver tanto anúncio e ter um trilhão de sites pra converter tudo, então juntei tudo em um que roda na sua prórpia máquina.
+
+Ele tem 3 funcionalidades:
+- [Baixar vídeo do YouTube em MP3](#baixar-vídeo-do-youtube-em-mp3)
+- [Extrair áudio de um vídeo](#extrair-áudio-de-um-vídeo)
+- [Comprimir vídeo](#comprimir-vídeo)
+
+## Requisitos
+
+Nenhum! Na primeira vez, o próprio **Abrir Conversor** instala o que faltar (Python, `yt-dlp` e `ffmpeg`). Pode demorar um pouco e, no Mac, pedir a senha.
+
+Se o yt-dlp parar de funcionar, atualize com `brew upgrade yt-dlp` (Mac) ou `winget upgrade yt-dlp` (Windows). O YouTube muda com frequência.
+
+## Como rodar
+
+## Baixar vídeo do YouTube em MP3
+
 Página local para converter vídeos do YouTube em MP3. Você cola o link e ela roda:
 
 ```bash
@@ -8,23 +25,7 @@ yt-dlp -x --audio-format mp3 "link"
 
 Uso pessoal, só roda na sua máquina.
 
-## Requisitos
-
-- `yt-dlp`, baixa os vídeos do youtube
-- `ffmpeg`, converter para MP3
-
-Roda esse comando que baixa os dois:
-```bash
-brew install yt-dlp ffmpeg
-```
-
-- Python 3 (não precisa instalar nenhuma biblioteca)
-
-Se o yt-dlp parar de funcionar, atualize com `brew upgrade yt-dlp`. O YouTube muda com frequência.
-
-## Como rodar
-
-Jeito fácil: dê dois cliques em **`Abrir Conversor.command`** no Finder. O Terminal abre, o servidor sobe e o navegador abre a página. Se o servidor já estiver rodando, ele só abre a página.
+Jeito fácil: dê dois cliques em **`Abrir Conversor.command`** no Finder (Mac) ou **`Abrir Conversor.bat`** (Windows). O Terminal abre, o servidor sobe e o navegador abre a página. Se o servidor já estiver rodando, ele só abre a página.
 
 Pelo terminal:
 
